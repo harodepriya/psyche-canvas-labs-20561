@@ -297,6 +297,52 @@ const Monitor = () => {
     loadMentalHealthData(userId);
   };
 
+  // Real-time subscription for mood and alert updates
+  useEffect(() => {
+    if (!selectedUserId) return;
+
+    // Subscribe to mood changes
+    const moodChannel = supabase
+      .channel('mood-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'moods',
+          filter: `user_id=eq.${selectedUserId}`
+        },
+        () => {
+          // Reload data when moods change
+          loadMentalHealthData(selectedUserId);
+        }
+      )
+      .subscribe();
+
+    // Subscribe to alert changes
+    const alertChannel = supabase
+      .channel('alert-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'alerts',
+          filter: `user_id=eq.${selectedUserId}`
+        },
+        () => {
+          // Reload data when alerts change
+          loadMentalHealthData(selectedUserId);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(moodChannel);
+      supabase.removeChannel(alertChannel);
+    };
+  }, [selectedUserId]);
+
   const selectedUser = monitoredUsers.find(u => u.id === selectedUserId);
 
   if (isLoadingRole) {
