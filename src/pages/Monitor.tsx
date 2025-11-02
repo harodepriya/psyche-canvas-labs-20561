@@ -151,18 +151,28 @@ const Monitor = () => {
 
     // Convert moods to chart data
     const moodScoreMap: { [key: string]: number } = {
+      // High
+      'great': 5,
       'happy': 5,
+      // Medium-high
       'good': 4,
+      // Neutral
       'okay': 3,
+      'ok': 3,
+      'neutral': 3,
+      // Medium-low
+      'low': 2,
       'sad': 2,
+      // Low
+      'struggling': 1,
       'anxious': 1,
       'angry': 1,
-      'depressed': 1
+      'depressed': 1,
     };
 
     const chartData = moods.map(mood => ({
       date: format(new Date(mood.created_at), "MMM d"),
-      score: moodScoreMap[mood.mood.toLowerCase()] || 3
+      score: moodScoreMap[String(mood.mood).toLowerCase()] || 3,
     })).reverse();
 
     setMentalHealthData({ moods, alerts });
@@ -589,11 +599,18 @@ const Monitor = () => {
                   <LineChart data={moodChartData}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="date" />
-                    <YAxis domain={[0, 5]} ticks={[1, 2, 3, 4, 5]} />
+                    <YAxis 
+                      domain={[1, 5]} 
+                      ticks={[1, 2, 3, 4, 5]} 
+                      tickFormatter={(value: number, _index: number) => {
+                        const labels = ['', 'Struggling', 'Low', 'Okay', 'Good', 'Great'];
+                        return labels[value] || String(value);
+                      }}
+                    />
                     <Tooltip 
                       formatter={(value: number) => {
-                        const moodLabels = ['', 'Low', 'Sad', 'Okay', 'Good', 'Happy'];
-                        return moodLabels[value];
+                        const labels = ['', 'Struggling', 'Low', 'Okay', 'Good', 'Great'];
+                        return labels[value] || String(value);
                       }}
                     />
                     <Line 
