@@ -307,17 +307,17 @@ const Monitor = () => {
 
     // Subscribe to mood changes
     const moodChannel = supabase
-      .channel('mood-changes')
+      .channel(`monitor-moods-${selectedUserId}`)
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'moods',
           filter: `user_id=eq.${selectedUserId}`
         },
-        () => {
-          // Reload data when moods change
+        (payload) => {
+          console.log('Realtime: mood inserted for monitored user', payload);
           loadMentalHealthData(selectedUserId);
         }
       )
@@ -325,23 +325,24 @@ const Monitor = () => {
 
     // Subscribe to alert changes
     const alertChannel = supabase
-      .channel('alert-changes')
+      .channel(`monitor-alerts-${selectedUserId}`)
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'alerts',
           filter: `user_id=eq.${selectedUserId}`
         },
-        () => {
-          // Reload data when alerts change
+        (payload) => {
+          console.log('Realtime: alert inserted for monitored user', payload);
           loadMentalHealthData(selectedUserId);
         }
       )
       .subscribe();
 
     return () => {
+      console.log('Realtime: cleaning up monitor channels');
       supabase.removeChannel(moodChannel);
       supabase.removeChannel(alertChannel);
     };

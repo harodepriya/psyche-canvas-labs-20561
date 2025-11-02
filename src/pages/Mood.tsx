@@ -41,25 +41,32 @@ const Mood = () => {
   }, [navigate]);
 
   useEffect(() => {
-    // Set up realtime subscription
-    const channel = supabase
-      .channel('mood-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'moods'
-        },
-        (payload) => {
-          console.log('Mood change detected:', payload);
-          loadMoodHistory();
-        }
-      )
-      .subscribe();
+    // Set up realtime subscription for the current user only
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      channel = supabase
+        .channel(`mood-self-${user.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'moods',
+            filter: `user_id=eq.${user.id}`
+          },
+          (payload) => {
+            console.log('Realtime: mood inserted for self', payload);
+            loadMoodHistory();
+          }
+        )
+        .subscribe();
+    })();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) supabase.removeChannel(channel);
     };
   }, []);
 
