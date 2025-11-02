@@ -229,9 +229,13 @@ const Monitor = () => {
     });
 
     if (lookupError || !lookupData?.user_id) {
+      const errorMessage = lookupData?.hint 
+        ? `${lookupData.error}. ${lookupData.hint}` 
+        : lookupData?.error || 'User not found with that email';
+      
       toast({
         title: "Error",
-        description: "User not found with that email",
+        description: errorMessage,
         variant: "destructive",
       });
       return;

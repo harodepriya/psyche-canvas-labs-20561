@@ -20,27 +20,41 @@ serve(async (req) => {
     const { email } = await req.json()
 
     if (!email) {
+      console.error('Email is required')
       return new Response(
         JSON.stringify({ error: 'Email is required' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       )
     }
 
-    // Use admin API to search for user by email
+    console.log(`Looking up user with email: ${email}`)
+
+    // Use admin API to search for user by email (case-insensitive)
     const { data: { users }, error } = await supabaseClient.auth.admin.listUsers()
 
     if (error) {
+      console.error('Error listing users:', error)
       throw error
     }
 
-    const user = users?.find(u => u.email === email)
+    console.log(`Found ${users?.length || 0} total users`)
+
+    // Case-insensitive email search
+    const normalizedEmail = email.toLowerCase().trim()
+    const user = users?.find(u => u.email?.toLowerCase() === normalizedEmail)
 
     if (!user) {
+      console.log(`User not found with email: ${email}`)
       return new Response(
-        JSON.stringify({ error: 'User not found' }),
+        JSON.stringify({ 
+          error: 'User not found',
+          hint: 'Make sure the user has created an account first'
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
       )
     }
+
+    console.log(`Found user: ${user.id}`)
 
     return new Response(
       JSON.stringify({ user_id: user.id }),
