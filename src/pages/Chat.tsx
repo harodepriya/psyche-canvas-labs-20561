@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Bot, User, Loader2 } from "lucide-react";
+import { Send, Bot, User, Loader2, Eye } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -20,6 +21,7 @@ const Chat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isBeingMonitored, setIsBeingMonitored] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -28,9 +30,24 @@ const Chat = () => {
         navigate("/auth");
       } else {
         loadMessages();
+        checkMonitoringStatus();
       }
     });
   }, [navigate]);
+
+  const checkMonitoringStatus = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data } = await supabase
+      .from("monitoring_relationships")
+      .select("id")
+      .eq("monitored_user_id", user.id)
+      .eq("approved", true)
+      .limit(1);
+
+    setIsBeingMonitored(!!data && data.length > 0);
+  };
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -205,6 +222,14 @@ const Chat = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {isBeingMonitored && (
+              <Alert className="bg-amber-50 border-amber-200 dark:bg-amber-950 dark:border-amber-800">
+                <Eye className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                <AlertDescription className="text-amber-800 dark:text-amber-200">
+                  Your conversations are visible to your approved monitors as part of your wellness support plan.
+                </AlertDescription>
+              </Alert>
+            )}
             <ScrollArea className="h-[500px] pr-4" ref={scrollRef}>
               <div className="space-y-4">
                 {messages.map((message, index) => (
